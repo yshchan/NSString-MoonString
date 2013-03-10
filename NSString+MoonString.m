@@ -10,8 +10,48 @@
 
 @implementation NSString (MoonString)
 
-- (NSString *) inverseCapitalisationString
+-(NSUInteger)occurrencesOfString:(NSString *)needle {
+    NSString *haystack = (NSString*)self;
+    const char * rawNeedle = [needle UTF8String];
+    NSUInteger needleLength = strlen(rawNeedle);
+    
+    const char * rawHaystack = [haystack UTF8String];
+    NSUInteger haystackLength = strlen(rawHaystack);
+    
+    NSUInteger needleCount = 0;
+    NSUInteger needleIndex = 0;
+    for (NSUInteger index = 0; index < haystackLength; ++index) {
+        const char thisCharacter = rawHaystack[index];
+        if (thisCharacter != rawNeedle[needleIndex]) {
+            needleIndex = 0; //they don't match; reset the needle index
+        }
+        
+        //resetting the needle might be the beginning of another match
+        if (thisCharacter == rawNeedle[needleIndex]) {
+            needleIndex++; //char match
+            if (needleIndex >= needleLength) {
+                needleCount++; //we completed finding the needle
+                needleIndex = 0;
+            }
+        }
+    }
+    return needleCount;
+}
 
+-(BOOL)containsString:(NSString *)substring range:(NSRange *)range{
+    
+    NSRange r = [self rangeOfString : substring];
+    BOOL found = ( r.location != NSNotFound );
+    if (range != NULL) *range = r;
+    return found;
+}
+
+-(BOOL)containsString:(NSString *)substring
+{
+    return [self containsString:substring range:NULL];
+}
+
+- (NSString *) inverseCapitalisationString
 {
     // This is a quick hack to convert upper case letters to lowercase, and vice versa
     // It uses the standard C character manipulation functions so it will obviously not
@@ -65,6 +105,46 @@
         }
     }
     return nil;
+}
+
+-(NSMutableArray*)stringsBetweenString:(NSString*)start andString:(NSString*)end
+{
+    NSMutableArray* strings = [NSMutableArray arrayWithCapacity:0];
+    NSRange startRange = [self rangeOfString:start];
+    for( ;; )
+    {
+        if (startRange.location != NSNotFound)
+        {
+            NSRange targetRange;
+            
+            targetRange.location = startRange.location + startRange.length;
+            targetRange.length = [self length] - targetRange.location;
+            
+            NSRange endRange = [self rangeOfString:end options:0 range:targetRange];
+            
+            if (endRange.location != NSNotFound)
+            {
+                targetRange.length = endRange.location - targetRange.location;
+                [strings addObject:[self substringWithRange:targetRange]];
+                
+                NSRange restOfString;
+                
+                restOfString.location = endRange.location + endRange.length;
+                restOfString.length = [self length] - restOfString.location;
+                
+                startRange = [self rangeOfString:start options:0 range:restOfString];
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+    return strings;
 }
 
 -(NSString*)compileStrings:(NSArray*)chunks seperator:(NSString*)seperator {
